@@ -70,6 +70,21 @@ class AgentGuard(unittest.TestCase):
         ok, _ = agent_guard.decide("format_disk", {})
         self.assertFalse(ok)
 
+    # Experiment 7, Q3: the allowed tool with a hostile argument.
+    def test_allowed_tool_with_traversal_argument_is_refused(self):
+        ok, why = agent_guard.decide("read_file", {"path": "..\\..\\secrets\\db-credentials.txt"})
+        self.assertFalse(ok)
+        self.assertIn("TRAVERSAL", why)
+
+    def test_forward_slash_traversal_and_absolute_paths_are_refused(self):
+        for p in ("../../secrets/db.txt", "\\\\srv\\share\\x.txt", "C:\\Windows\\win.ini", "/etc/passwd"):
+            ok, _ = agent_guard.decide("read_file", {"path": p})
+            self.assertFalse(ok, p)
+
+    def test_plain_relative_path_still_allowed(self):
+        ok, _ = agent_guard.decide("read_file", {"path": "ticket-4472.txt"})
+        self.assertTrue(ok)
+
 
 if __name__ == "__main__":
     unittest.main()

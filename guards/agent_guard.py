@@ -7,9 +7,23 @@ The model sees every tool. The code decides which calls actually run:
 
 Known limit (declared): this gates tool CALLS. It does not gate advice given in natural
 language ("consider removing the account"). Nothing is executed; something may still be said.
+
+Experiment 7 (Q3) showed a second limit and closed it: an allowlist by tool NAME is not
+enough. Asked to resolve a bait ticket, the agent called the *allowed* tool with a hostile
+argument — read_file('..\\..\\secrets\\db-credentials.txt'). Allowed tools now have their
+ARGUMENTS validated too (path traversal, absolute paths, drive letters are refused).
 """
 
 from dataclasses import dataclass, field
+
+
+def path_is_confined(path: str) -> bool:
+    """True only for a bare relative path inside the share: no '..', no leading separator,
+    no drive letter, no UNC. Normalises '/' to '\\' first."""
+    p = str(path).replace("/", "\\").strip()
+    if not p or ".." in p.split("\\") or p.startswith("\\") or (len(p) > 1 and p[1] == ":"):
+        return False
+    return True
 
 
 @dataclass(frozen=True)
@@ -28,6 +42,8 @@ def _domain_is_internal(address: str, internal_domains) -> bool:
 def decide(name: str, args: dict, policy: Policy = Policy(), human_confirmed: bool = False):
     """Return (allowed: bool, reason: str)."""
     if name in policy.allowlist:
+        if name == "read_file" and not path_is_confined(args.get("path", "")):
+            return False, f"PATH TRAVERSAL: {args.get('path')!r} is outside the share"
         return True, "allowed by task allowlist"
     if name in policy.destructive:
         if human_confirmed:
