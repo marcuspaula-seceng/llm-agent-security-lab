@@ -109,6 +109,17 @@ appears anywhere in the model output, the whole response is replaced. It is the 
 **`agent_guard.py`** — a tool call is allowed only if it is in the allowlist for the current
 task; destructive tools always require explicit human confirmation; side-effect tools with
 an external recipient are refused. It is the `G1` gate.
+Policy categories are cumulative: adding a destructive or side-effect tool to a task's
+allowlist does not remove its confirmation or recipient restrictions. The caller must
+supply a real boolean confirmation from a trusted human interaction; a model-generated
+argument cannot provide that approval. Malformed tool names, argument containers, paths
+and recipient values are refused. Recipients are restricted to one plain ASCII mailbox;
+display names, comments and recipient lists are deliberately unsupported.
+
+The path check is lexical. It does not resolve symlinks or enforce a filesystem sandbox;
+the eventual tool implementation must enforce its own root boundary. Policies and the
+confirmation signal are trusted application configuration, not model-controlled input.
+
 *Limit:* it gates *tool calls*, not *advice*. In a later run on a real host audit the model
 wrote *"consider removing if not required"* — no tool, no cmdlet, so the guard passed it. A
 guard proves nothing is **executed**; it does not prove nothing is **suggested**. The human
