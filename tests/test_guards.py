@@ -86,5 +86,72 @@ class AgentGuard(unittest.TestCase):
         self.assertTrue(ok)
 
 
+class PolicyBoundaryTests(unittest.TestCase):
+    def test_allowlisting_destructive_tool_still_requires_confirmation(self):
+        policy = agent_guard.Policy(allowlist=frozenset({"delete_account"}))
+        self.assertFalse(agent_guard.decide("delete_account", {}, policy)[0])
+        self.assertTrue(agent_guard.decide("delete_account", {}, policy, human_confirmed=True)[0])
+
+    def test_allowlisting_side_effect_still_checks_recipient_and_confirmation(self):
+        policy = agent_guard.Policy(allowlist=frozenset({"send_email"}))
+        for confirmed in (False, True):
+            self.assertFalse(agent_guard.decide(
+                "send_email", {"to": "demo@example.net"}, policy, human_confirmed=confirmed)[0])
+        self.assertFalse(agent_guard.decide("send_email", {"to": "demo@example.com"}, policy)[0])
+        self.assertTrue(agent_guard.decide(
+            "send_email", {"to": "demo@example.com"}, policy, human_confirmed=True)[0])
+
+    def test_all_three_policy_categories_are_cumulative(self):
+        policy = agent_guard.Policy(
+            allowlist=frozenset({"send_email"}), destructive=frozenset({"send_email"}))
+        self.assertFalse(agent_guard.decide(
+            "send_email", {"to": "demo@example.net"}, policy, human_confirmed=True)[0])
+        self.assertFalse(agent_guard.decide("send_email", {"to": "demo@example.com"}, policy)[0])
+        self.assertTrue(agent_guard.decide(
+            "send_email", {"to": "demo@example.com"}, policy, human_confirmed=True)[0])
+
+    def test_malformed_argument_containers_fail_closed(self):
+        for args in (None, [], "path", 42, True):
+            with self.subTest(args=args):
+                self.assertFalse(agent_guard.decide("read_file", args)[0])
+
+    def test_malformed_tool_names_fail_closed(self):
+        for name in (None, [], {}, 42):
+            with self.subTest(name=name):
+                self.assertFalse(agent_guard.decide(name, {})[0])
+
+    def test_confirmation_requires_actual_boolean(self):
+        for confirmed in ("false", "true", 1, [], None):
+            with self.subTest(confirmed=confirmed):
+                self.assertFalse(agent_guard.decide(
+                    "delete_account", {}, human_confirmed=confirmed)[0])
+
+    def test_model_argument_cannot_supply_confirmation(self):
+        self.assertFalse(agent_guard.decide("delete_account", {"human_confirmed": True})[0])
+
+    def test_path_values_are_not_coerced_to_strings(self):
+        for path in (None, [], {}, 7, True, "", " ", "demo\x00.txt"):
+            with self.subTest(path=path):
+                self.assertFalse(agent_guard.decide("read_file", {"path": path})[0])
+
+    def test_malformed_mailboxes_and_recipient_lists_fail_closed(self):
+        for address in (
+            None, [], 7, "example.com", "@example.com", "demo@@example.com",
+            "demo@example.net,other@example.com", "demo@example.net;other@example.com",
+            "Demo <demo@example.com>", "demo@example.com\n", "demo @example.com",
+            "demo@.example.com", "demo@a..example.com", "demo@example.com.evil.net",
+            "demo(comment)@example.com", "demo..name@example.com",
+        ):
+            with self.subTest(address=address):
+                self.assertFalse(agent_guard.decide(
+                    "send_email", {"to": address}, human_confirmed=True)[0])
+
+    def test_valid_plain_mailboxes_remain_supported(self):
+        for address in ("demo@example.com", "demo+audit@EXAMPLE.COM", "demo.name@mail.example.com"):
+            with self.subTest(address=address):
+                self.assertTrue(agent_guard.decide(
+                    "send_email", {"to": address}, human_confirmed=True)[0])
+
+
 if __name__ == "__main__":
     unittest.main()
