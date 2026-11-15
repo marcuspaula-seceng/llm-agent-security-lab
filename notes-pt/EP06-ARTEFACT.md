@@ -35,7 +35,7 @@ A conclusão que atravessa os quatro episódios executados é uma só:
 - Ciclo 7: o playbook `triage.py` tem `decision: NENHUMA` por contrato, com teste.
 - Ciclo 8: a guarda G1 é o mesmo princípio dentro de um agente LLM.
 
-Três ciclos, um princípio, três implementações. É isso que se explica em entrevista.
+Três ciclos, um princípio, três implementações. É isso que o laboratório ensina.
 
 ## Reprodutibilidade
 

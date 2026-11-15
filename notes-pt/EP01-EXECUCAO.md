@@ -154,11 +154,11 @@ entre modelos. Ver `EP01-EXPLICACAO.md` secção 5.
 
 ## EXPLICAR
 
-A pergunta de entrevista que este episódio responde:
+A pergunta que este episódio responde:
 
 > *"Como é que você testaria a segurança de uma aplicação que usa LLM?"*
 
-A resposta está em `EP01-EXPLICACAO.md`, secção 7. **Não copiar para `ENTREVISTA.md` antes de
+A resposta está em `EP01-EXPLICACAO.md`, secção 7. **Não dar por aprendida antes de
 conseguir dizer em voz alta, sem ler.** Regra do próprio repositório de estudo.
 
 ---

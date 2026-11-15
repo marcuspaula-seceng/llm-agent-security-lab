@@ -2,7 +2,7 @@
 
 These are the working notes written during the sessions, in Portuguese, kept as they were
 produced. They contain the reasoning, the "what this does not prove" sections and the
-interview question each episode prepares. The English README summarises the results; these
+knowledge check each episode closes with. The English README summarises the results; these
 are the primary record.
 
 | File | Content |

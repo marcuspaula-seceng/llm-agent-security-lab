@@ -100,7 +100,7 @@ tem de ser automático e procurar a string, que foi exactamente o que o meu scri
 
 ---
 
-## 4. Os dois casos que você precisa levar para uma entrevista
+## 4. Os dois casos que você precisa saber explicar
 
 ### O caso D é o que assusta empresa
 
@@ -148,13 +148,13 @@ Disciplina importante, e é a parte que separa relatório sério de relatório d
   execução. Um `garak` faz milhares de sondas — é o Episódio 2.
 - **Não mediu falso positivo.** Não testei pedidos legítimos para ver se seriam bloqueados.
 
-> Escreva sempre o que o teste **não** cobre. Numa entrevista, é essa secção que mostra maturidade.
+> Escreva sempre o que o teste **não** cobre. É essa secção que mostra maturidade técnica.
 
 ---
 
 ## 6. Então qual é a defesa?
 
-A resposta honesta, e que você deve dar numa entrevista: **não existe defesa completa contra prompt
+A resposta honesta: **não existe defesa completa contra prompt
 injection hoje.** Quem vender isso está a mentir. O que existe é redução de impacto, e a ordem
 importa:
 
@@ -190,7 +190,7 @@ Sem ler, sem IA aberta — é a regra do seu próprio `TEMPLATE-TOPICO.md`:
 > instruir melhor o modelo — é não pôr o segredo no contexto e limitar o que as ferramentas do
 > agente conseguem fazer."*
 
-Se conseguir dizer isto sem ler, copie para `ENTREVISTA.md`.
+Se conseguir dizer isto sem ler, o episódio está aprendido.
 
 ---
 
