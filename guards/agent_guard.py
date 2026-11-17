@@ -15,12 +15,15 @@ ARGUMENTS validated too (path traversal, absolute paths, drive letters are refus
 """
 
 from dataclasses import dataclass, field
+import re
 
 
 def path_is_confined(path: str) -> bool:
     """True only for a bare relative path inside the share: no '..', no leading separator,
     no drive letter, no UNC. Normalises '/' to '\\' first."""
-    p = str(path).replace("/", "\\").strip()
+    if not isinstance(path, str) or "\x00" in path:
+        return False
+    p = path.replace("/", "\\").strip()
     if not p or ".." in p.split("\\") or p.startswith("\\") or (len(p) > 1 and p[1] == ":"):
         return False
     return True
@@ -35,25 +38,47 @@ class Policy:
 
 
 def _domain_is_internal(address: str, internal_domains) -> bool:
-    dom = str(address).split("@")[-1].lower().strip()
+    """Accept one plain mailbox only, not display names or recipient lists."""
+    if not isinstance(address, str):
+        return False
+    # A deliberately conservative ASCII dot-atom mailbox, not a full RFC parser.
+    atom = r"[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+"
+    label = r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?"
+    if not re.fullmatch(rf"{atom}(?:\.{atom})*@{label}(?:\.{label})*", address):
+        return False
+    dom = address.rsplit("@", 1)[1].lower()
     return any(dom == d or dom.endswith("." + d) for d in internal_domains)
 
 
 def decide(name: str, args: dict, policy: Policy = Policy(), human_confirmed: bool = False):
-    """Return (allowed: bool, reason: str)."""
-    if name in policy.allowlist:
-        if name == "read_file" and not path_is_confined(args.get("path", "")):
-            return False, f"PATH TRAVERSAL: {args.get('path')!r} is outside the share"
-        return True, "allowed by task allowlist"
-    if name in policy.destructive:
-        if human_confirmed:
-            return True, "destructive tool confirmed by human"
-        return False, "DESTRUCTIVE: requires explicit human confirmation"
+    """Return (allowed: bool, reason), applying every applicable restriction first.
+
+    Overlapping policy categories are cumulative: allowlisting never bypasses a
+    destructive confirmation or an external-recipient restriction. Confirmation
+    is supplied by the trusted caller, never copied from model-generated arguments.
+    """
+    if not isinstance(name, str) or not isinstance(args, dict):
+        return False, "INVALID ARGUMENTS: expected a tool name and argument dictionary"
+    if not isinstance(human_confirmed, bool):
+        return False, "INVALID CONFIRMATION: expected a boolean from the trusted caller"
+
+    if name == "read_file" and not path_is_confined(args.get("path", "")):
+        return False, f"PATH TRAVERSAL: {args.get('path')!r} is not a valid relative path"
+
+    # Restrictions are cumulative and take precedence over the task allowlist.
     if name in policy.external_side_effect:
-        to = str(args.get("to", ""))
+        to = args.get("to", "")
         if not _domain_is_internal(to, policy.internal_domains):
-            return False, f"EXTERNAL RECIPIENT {to!r}: refused"
-        if human_confirmed:
-            return True, "side effect confirmed by human"
-        return False, "SIDE EFFECT outside task allowlist: requires confirmation"
+            return False, f"EXTERNAL OR INVALID RECIPIENT {to!r}: refused"
+    if name in policy.destructive and not human_confirmed:
+        return False, "DESTRUCTIVE: requires explicit human confirmation"
+    if name in policy.external_side_effect and not human_confirmed:
+        return False, "SIDE EFFECT: requires confirmation"
+
+    if name in policy.destructive:
+        return True, "destructive tool confirmed by human"
+    if name in policy.external_side_effect:
+        return True, "side effect confirmed by human"
+    if name in policy.allowlist:
+        return True, "allowed by task allowlist"
     return False, "not in allowlist"
